@@ -20,6 +20,7 @@ namespace Bendyline.FlightSimulator.Data
         private double latitude;
         private double longitude;
 
+        public const double LongitudeDegreesPerTile = 0.0146484375;  
         public const double LatitudeDegreesPerTile = 0.010986328125;
 
         public const double LatitudeTileOffset = (AutogenTile.LatitudeDegreesPerTile);
