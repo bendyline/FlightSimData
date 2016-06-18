@@ -1,6 +1,7 @@
 ﻿/* Copyright (c) Bendyline LLC. All rights reserved. Licensed under the Apache License, Version 2.0.
     You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0. */
 
+using Bendyline.Base;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -10,6 +11,7 @@ namespace Bendyline.FlightSimulator.Data
     public class AutogenTile
     {
         private GenericBuildingDistribution gbd;
+        private List<GenericBuilding> genericBuildings = null;
         private List<VegetationPolygon> vegetationPolygons = null;
         private List<PolygonBuilding> polygonBuildings = null;
         private List<LibraryObject> libraryObjects= null;
@@ -17,27 +19,72 @@ namespace Bendyline.FlightSimulator.Data
 
         private RiffRecord rootRecord;
 
-        private double latitude;
-        private double longitude;
+        private double northWestLatitude;
+        private double northWestLongitude;
 
         public const double LongitudeDegreesPerTile = 0.0146484375;  
         public const double LatitudeDegreesPerTile = 0.010986328125;
 
-        public const double LatitudeTileOffset = (AutogenTile.LatitudeDegreesPerTile);
+        public const double LatitudeTileOffset = 0;//(AutogenTile.LatitudeDegreesPerTile / 2);
 
         public const int TilesLongitude = 24576;
         public const int TilesLatitude = 16384;
+
+        private bool isLoaded = false;
+
+        private String path;
+
+        public String Path
+        {
+            get
+            {
+                return path;
+            }
+
+            set
+            {
+                this.path = value;
+
+                if (!String.IsNullOrEmpty(this.path))
+                {
+                    FileInfo fi = new FileInfo(this.path);
+
+                    this.LoadFromFileName(fi.Name);
+                }
+            }
+        }
+
+        public GenericBuildingDistribution GenericBuildingDistribution
+        {
+            get
+            {
+                if (this.gbd == null)
+                {
+                    this.gbd = new GenericBuildingDistribution();
+                }
+
+                return this.gbd;
+            }
+        }
+
+        public bool IsLoaded
+        {
+            get
+            {
+                return this.isLoaded;
+            }
+        }
 
         public int V
         {
             get
             {
-                return Convert.ToInt32(Math.Floor(   ((90 -  (this.latitude +LatitudeTileOffset)  ) *   TilesLatitude) / 180) );
+                return Convert.ToInt32(Math.Floor(   ((90 -  (this.northWestLatitude +LatitudeTileOffset)  ) *   TilesLatitude) / 180) );
             }
 
             set
             {
-                this.Latitude = (90 - (value * LatitudeDegreesPerTile)) - LatitudeTileOffset;
+                this.NorthWestLatitude = (90 - (value * LatitudeDegreesPerTile)) - LatitudeTileOffset;
             }
         }
 
@@ -45,12 +92,12 @@ namespace Bendyline.FlightSimulator.Data
         {
             get
             {
-                return Convert.ToInt32(Math.Floor( ((this.longitude + 180) * TilesLongitude) / 360 ));
+                return Convert.ToInt32(Math.Floor( ((this.northWestLongitude + 180) * TilesLongitude) / 360 ));
             }
 
             set
             {
-                this.Longitude = (value * LongitudeDegreesPerTile) - 180;
+                this.NorthWestLongitude = (value * LongitudeDegreesPerTile) - 180;
             }
         }
 
@@ -78,6 +125,14 @@ namespace Bendyline.FlightSimulator.Data
             }
         }
 
+        public List<GenericBuilding> GenericBuildings
+        {
+            get
+            {
+                return this.genericBuildings;
+            }
+        }
+
         public List<RectangularVegetationArea> RectangularVegetationAreas
         {
             get
@@ -86,29 +141,61 @@ namespace Bendyline.FlightSimulator.Data
             }
         }
 
-        public double Latitude
+        public double WidthInKm
         {
             get
             {
-                return this.latitude;
-            }
-
-            set
-            {
-                this.latitude = value;
+                return GeoUtilities.GetDistance(this.NorthWestLatitude, this.NorthWestLongitude, this.NorthWestLatitude, this.SouthEastLongitude);
             }
         }
 
-        public double Longitude
+        public double HeightInKm
         {
             get
             {
-                return this.longitude;
+                return GeoUtilities.GetDistance(this.NorthWestLatitude, this.NorthWestLongitude, this.SouthEastLatitude, this.NorthWestLongitude);
+            }
+        }
+
+        public double SouthEastLatitude
+        {
+            get
+            {
+                return this.northWestLatitude - AutogenTile.LatitudeDegreesPerTile;
+            }
+        }
+
+        public double SouthEastLongitude
+        {
+            get
+            {
+                return this.northWestLongitude + AutogenTile.LongitudeDegreesPerTile;
+            }
+        }
+
+        public double NorthWestLatitude
+        {
+            get
+            {
+                return this.northWestLatitude;
             }
 
             set
             {
-                this.longitude = value;
+                this.northWestLatitude = value;
+            }
+        }
+
+        public double NorthWestLongitude
+        {
+            get
+            {
+                return this.northWestLongitude;
+            }
+
+            set
+            {
+                this.northWestLongitude = value;
             }
         }
 
@@ -123,6 +210,7 @@ namespace Bendyline.FlightSimulator.Data
             this.polygonBuildings = new List<PolygonBuilding>();
             this.libraryObjects = new List<LibraryObject>();
             this.rectangularVegetationAreas = new List<RectangularVegetationArea>();
+            this.genericBuildings = new List<GenericBuilding>();
         }
 
         public void SnapToUpperLeftCorner()
@@ -183,6 +271,19 @@ namespace Bendyline.FlightSimulator.Data
                 }
             }
 
+            if (this.genericBuildings.Count > 0)
+            {
+                ContainerRecord cr = new ContainerRecord();
+                cr.RecordType = RecordType.GenericBuildingSetGBLD;
+
+                this.rootRecord.ChildRecords.Add(cr);
+
+                foreach (GenericBuilding lo in this.genericBuildings)
+                {
+                    cr.ChildRecords.Add(lo);
+                }
+            }
+
             if (this.rectangularVegetationAreas.Count > 0)
             {
                 ContainerRecord cr = new ContainerRecord();
@@ -205,16 +306,19 @@ namespace Bendyline.FlightSimulator.Data
             }
         }
 
-        public void Load(String path)
+        public void Load()
         {
-            FileInfo fi = new FileInfo(path);
+            if (String.IsNullOrEmpty(this.path))
+            {
+                return;
+            }
+
+
+            FileInfo fi = new FileInfo(this.path);
 
             this.Initialize();
-
-            this.LoadFromFileName(fi.Name);
         
             List<Record> recordStack = new List<Record>();
-
 
             using (FileStream fs = fi.OpenRead())
             {
@@ -305,6 +409,18 @@ namespace Bendyline.FlightSimulator.Data
                             childRecord = cr;
 
                         }
+                        else if (art == RecordType.GenericBuildingSetGBLD)
+                        {
+                            ContainerRecord cr = new ContainerRecord();
+
+                            cr.RecordType = RecordType.GenericBuildingSetGBLD;
+                            cr.AllowedChildTypes = new RecordType[] { RecordType.GenericBuildingGBLR };
+
+                            recordStack.Add(cr);
+
+                            childRecord = cr;
+
+                        }
                         else if (art == RecordType.LibraryObjectsAGN2)
                         {
                             ContainerRecord cr = new ContainerRecord();
@@ -333,6 +449,15 @@ namespace Bendyline.FlightSimulator.Data
 
                             childRecord = gbd;
                         }
+                        else if (art == RecordType.GenericBuildingGBLR)
+                        {
+                            GenericBuilding vp = new GenericBuilding();
+
+                            vp.Load(fs, sectionSize);
+
+                            childRecord = vp;
+                            this.genericBuildings.Add(vp);
+                        }
                         else if (art == RecordType.VegetationPolygonPRDE)
                         {
                             VegetationPolygon vp = new VegetationPolygon();
@@ -340,6 +465,8 @@ namespace Bendyline.FlightSimulator.Data
                             vp.Load(fs, sectionSize);
 
                             childRecord = vp;
+
+                            this.vegetationPolygons.Add(vp);
                         }
                         else if (art == RecordType.PolygonBuildingPBDE)
                         {
@@ -348,6 +475,7 @@ namespace Bendyline.FlightSimulator.Data
                             vp.Load(fs, sectionSize);
 
                             childRecord = vp;
+                            this.polygonBuildings.Add(vp);
                         }
                         else if (art == RecordType.LibraryObjectA2GE)
                         {
@@ -356,6 +484,23 @@ namespace Bendyline.FlightSimulator.Data
                             vp.Load(fs, sectionSize);
 
                             childRecord = vp;
+                            this.libraryObjects.Add(vp);
+                        }
+                        else if (art == RecordType.RowHouseROWH)
+                        {
+                            RowHouse vp = new RowHouse();
+
+                            vp.Load(fs, sectionSize);
+
+                            childRecord = vp;
+                            
+                        }
+                        else
+                        {
+                            for (int filler=0; filler < sectionSize / 4; filler++)
+                            {
+                                ReadInt(fs);
+                            }
                         }
 
                         if (childRecord != null)
@@ -364,7 +509,10 @@ namespace Bendyline.FlightSimulator.Data
                         }
                     }
                 }
+
             }
+
+            this.isLoaded = true;
         }
 
         private void WriteRecordHeader(Stream stream, char a, char b, char c, char d, int fileSize)

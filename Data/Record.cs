@@ -32,7 +32,8 @@ namespace Bendyline.FlightSimulator.Data
             "A2GE",
             "AGNX",
             "PBLD",
-            "PBDE"
+            "PBDE",
+            "ROWH"
         };
 
         public virtual RecordType RecordType

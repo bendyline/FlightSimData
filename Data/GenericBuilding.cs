@@ -1,36 +1,23 @@
 ﻿/* Copyright (c) Bendyline LLC. All rights reserved. Licensed under the Apache License, Version 2.0.
     You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0. */
 
-    using System;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 
 namespace Bendyline.FlightSimulator.Data
 {
-    public class PolygonBuilding : Record
+    public class GenericBuilding : Record
     {
         private List<Vertex> vertices;
-        private float extrusionWidth = -0.00945066f;
-        private Guid buildingType;
-
-        public float ExtrusionWidth
-        {
-            get
-            {
-                return this.extrusionWidth;
-            }
-
-            set
-            {
-                this.extrusionWidth = value;
-            }
-        }
+        private Guid roofType;
 
         public override RecordType RecordType
         {
             get
             {
-                return RecordType.PolygonBuildingPBDE;
+                return RecordType.GenericBuildingGBLR;
             }
 
             set
@@ -47,16 +34,16 @@ namespace Bendyline.FlightSimulator.Data
             }
         }
 
-        public Guid BuildingType
+        public Guid RoofType
         {
             get
             {
-                return this.buildingType;
+                return this.roofType;
             }
 
             set
             {
-                this.buildingType = value;
+                this.roofType = value;
             }
         }
 
@@ -65,11 +52,11 @@ namespace Bendyline.FlightSimulator.Data
             get
             {
                 // GUID = 16 bytes, FLOAT for height = 4 bytes, INT for vertext count = 4 bytes, each vertex is 8 bytes.
-                return 28 + (this.vertices.Count * 8);
+                return 16 + (this.vertices.Count * 8);
             }
         }
 
-        public PolygonBuilding()
+        public GenericBuilding()
         {
             this.vertices = new List<Vertex>();
         }
@@ -77,10 +64,10 @@ namespace Bendyline.FlightSimulator.Data
 
         public override void Load(Stream fs, int sectionSize)
         {
-            this.buildingType = ReadGuid(fs);
-            int val = ReadInt(fs);
-            this.extrusionWidth = ReadFloat(fs);
-            int vertexCount = ReadInt(fs);
+            this.roofType = ReadGuid(fs);
+            int vertexCount = (sectionSize - 16) / 8;
+
+            Debug.Assert(vertexCount * 8 + 16 == sectionSize);
 
             for (int i=0; i<vertexCount; i++)
             {
@@ -98,11 +85,8 @@ namespace Bendyline.FlightSimulator.Data
         {
             base.Save(s);
 
-            this.WriteGuid(s, this.buildingType);
-            this.WriteInt(s, 1);
-            this.WriteFloat(s, this.extrusionWidth);
-            this.WriteInt(s, this.vertices.Count);
-
+            this.WriteGuid(s, this.roofType);
+            
             foreach (Vertex v in this.vertices)
             {
                 this.WriteFloat(s, v.X);

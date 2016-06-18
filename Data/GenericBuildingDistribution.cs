@@ -13,6 +13,57 @@ namespace Bendyline.FlightSimulator.Data
         private Int32 sixToEightFloorBuildingPercent = 0;
         private Int32 nineToTwelveFloorBuildingPercent = 0;
 
+        public Int32 OneAndTwoFloorBuildingPercent
+        {
+            get
+            {
+                return this.oneAndTwoFloorBuildingPercent;
+            }
+
+            set
+            {
+                this.oneAndTwoFloorBuildingPercent = value;
+            }
+        }
+
+        public Int32 SixToEightFloorBuildingPercent
+        {
+            get
+            {
+                return this.sixToEightFloorBuildingPercent;
+            }
+
+            set
+            {
+                this.sixToEightFloorBuildingPercent = value;
+            }
+        }
+
+        public Int32 ThreeToFiveFloorBuildingPercent
+        {
+            get
+            {
+                return this.threeToFiveFloorBuildingPercent;
+            }
+
+            set
+            {
+                this.threeToFiveFloorBuildingPercent = value;
+            }
+        }
+
+        public Int32 NineToTwelveFloorBuildingPercent
+        {
+            get
+            {
+                return this.nineToTwelveFloorBuildingPercent;
+            }
+
+            set
+            {
+                this.sixToEightFloorBuildingPercent = value;
+            }
+        }
         public override RecordType RecordType
         {
             get

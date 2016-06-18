@@ -9,8 +9,8 @@
         GenericBuildingDistributionGBDD = 1,
         GenericBuildingTextureGBTE = 2,
         RowHouseTextureRHTE = 3,
-        GenericBuildingGBLD = 4,
-        GenericBuildingPointsGBLR = 5,
+        GenericBuildingSetGBLD = 4,
+        GenericBuildingGBLR = 5,
         VegetationPolygonsPREG = 6,
         RiffFileRIFF = 7,
         VegetationPolygonPRDE = 8,
@@ -22,6 +22,7 @@
         LibraryObjectA2GE = 14,
         AGNX = 15,
         PolygonBuildingsPBLD = 16,
-        PolygonBuildingPBDE = 17
+        PolygonBuildingPBDE = 17,
+        RowHouseROWH = 18
     }
 }
