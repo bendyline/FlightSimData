@@ -4,6 +4,7 @@
 using Bendyline.Base;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 
 namespace Bendyline.FlightSimulator.Data
@@ -30,6 +31,7 @@ namespace Bendyline.FlightSimulator.Data
         public const int TilesLongitude = 24576;
         public const int TilesLatitude = 16384;
 
+        public const double PolygonClosenessThreshold = 0.01;
         private bool isLoaded = false;
 
         private String path;
@@ -212,6 +214,312 @@ namespace Bendyline.FlightSimulator.Data
             this.rectangularVegetationAreas = new List<RectangularVegetationArea>();
             this.genericBuildings = new List<GenericBuilding>();
         }
+
+        public void SnapPolygonsToNorthwestSide()
+        {            
+            for (int j = 0; j < this.VegetationPolygons.Count; j++)
+            {
+                VegetationPolygon primary = this.VegetationPolygons[j];
+
+                List<Vertex> westernVertices= this.GetAllWesternVertices(primary.Vertices);
+                List<Vertex> easternVertices = this.GetEasternVertices(primary.Vertices);
+                List<Vertex> northernVertices = this.GetNorthernVertices(westernVertices, easternVertices);
+
+                foreach (Vertex v in westernVertices)
+                {
+                    if (v.X < (PolygonClosenessThreshold * 2))
+                    {
+                        v.X = 0;
+                    }
+                }
+
+                foreach (Vertex v in northernVertices)
+                {
+                    if (v.Y < (PolygonClosenessThreshold * 2))
+                    {
+                        v.Y = 0;
+                    }
+                }
+
+                Debug.Assert(primary.Vertices[1].Y != primary.Vertices[2].Y);
+            }
+        }
+
+        public List<Vertex> GetAllWesternVertices(List<Vertex> vertices)
+        {
+            List<Vertex> westernVertices = new List<Vertex>();
+
+            double x = 1;
+            
+            foreach (Vertex v in vertices)
+            {
+                if (v.X < x)
+                {
+                    x = v.X;
+                }
+            }
+
+            for (int i = 0; i < vertices.Count; i++)
+            {
+                Vertex v = vertices[i];
+
+                if (Math.Abs(v.X - x) < PolygonClosenessThreshold)
+                {
+                    westernVertices.Add(v);
+                }
+            }
+
+            return westernVertices;
+        }
+
+
+        public List<Vertex> GetWesternVertices(List<Vertex> vertices)
+        {
+            List<Vertex> westernVertices = new List<Vertex>();
+
+            double x = 1;
+
+            int maxStreak = 0;
+            int curStreak = 0;
+
+            foreach (Vertex v in vertices)
+            {
+                if (v.X < x)
+                {
+                    x = v.X;
+                }
+            }
+
+            for (int i = 1; i < vertices.Count; i++)
+            {
+                Vertex v = vertices[i];
+
+                if (v.X == x)
+                {
+                    westernVertices.Add(v);
+
+                    curStreak++;
+
+                    if (curStreak > maxStreak)
+                    {
+                        maxStreak = curStreak;
+                    }
+                }
+                else
+                {
+                    curStreak = 0;
+                }
+            }
+
+            if (maxStreak != westernVertices.Count)
+            {
+                westernVertices.Clear();
+            }
+
+
+            return westernVertices;
+        }
+
+
+        public List<Vertex> GetEasternVertices(List<Vertex> vertices)
+        {
+            List<Vertex> easternVertices = new List<Vertex>();
+
+            double x = 0;
+
+            int maxStreak = 0;
+            int curStreak = 0;
+
+            foreach (Vertex v in vertices)
+            {
+                if (v.X > x)
+                {
+                    x = v.X;
+                }
+            }
+
+            for (int i=1; i<vertices.Count; i++)
+            {
+                Vertex v = vertices[i];
+
+                if (v.X == x)
+                {
+                    easternVertices.Add(v);
+
+                    curStreak++;
+
+                    if (curStreak > maxStreak)
+                    {
+                        maxStreak = curStreak;
+                    }
+                }
+                else
+                {
+                    curStreak = 0;
+                }
+            }
+
+            if (maxStreak != easternVertices.Count)
+            {
+                easternVertices.Clear();
+            }
+
+            return easternVertices;
+        }
+
+        public List<Vertex> GetSouthernVertices(List<Vertex> westVertices, List<Vertex> eastVertices)
+        {
+            List<Vertex> southernVertices = new List<Vertex>();
+
+            if (eastVertices.Count == 2 && westVertices.Count == 2)
+            {
+                if (westVertices[1].Y < westVertices[0].Y)
+                {
+                    southernVertices.Add(westVertices[1]);
+                }
+                else
+                {
+                    southernVertices.Add(westVertices[0]);
+                }
+
+                if (eastVertices[1].Y < eastVertices[0].Y)
+                {
+                    southernVertices.Add(eastVertices[1]);
+                }
+                else
+                {
+                    southernVertices.Add(eastVertices[0]);
+                }
+            }
+
+            return southernVertices;
+        }
+
+        public List<Vertex> GetNorthernVertices(List<Vertex> westVertices, List<Vertex> eastVertices)
+        {
+            List<Vertex> northernVertices = new List<Vertex>();
+
+            if (eastVertices.Count == 2 && westVertices.Count == 2)
+            {
+                if (westVertices[1].Y > westVertices[0].Y)
+                {
+                    northernVertices.Add(westVertices[1]);
+                }
+                else
+                {
+                    northernVertices.Add(westVertices[0]);
+                }
+
+                if (eastVertices[1].Y > eastVertices[0].Y)
+                {
+                    northernVertices.Add(eastVertices[1]);
+                }
+                else
+                {
+                    northernVertices.Add(eastVertices[0]);
+                }
+            }
+
+            return northernVertices;
+        }
+
+        public void CoalesceRectangularPolygons()
+        {
+            for (int j = 0; j < this.VegetationPolygons.Count; j++)
+            {
+                VegetationPolygon primary = this.VegetationPolygons[j];
+
+                for (int k = j + 1; k < this.VegetationPolygons.Count; k++)
+                {
+                    VegetationPolygon secondary = this.VegetationPolygons[k];
+
+                    List<Vertex> primaryEast = GetEasternVertices(primary.Vertices);
+                    List<Vertex> secondaryWest = GetWesternVertices(secondary.Vertices);
+                    List<Vertex> secondaryEast = GetEasternVertices(secondary.Vertices);
+
+                    if (primaryEast.Count == 2 && secondaryWest.Count == 2 && secondary.VegetationType == primary.VegetationType && secondary != primary)
+                    {
+                        if (primaryEast[0].IsClose(secondaryWest[1], PolygonClosenessThreshold) && primaryEast[1].IsClose(secondaryWest[0], PolygonClosenessThreshold))
+                        {
+
+                            if (secondaryEast.Count == 2)
+                            {
+                                if (Math.Abs(primaryEast[0].Y - secondaryEast[0].Y) < PolygonClosenessThreshold && Math.Abs(primaryEast[1].Y - secondaryEast[1].Y) <= PolygonClosenessThreshold)
+                                {
+                                    primaryEast[0].X = secondaryEast[0].X;
+                                    primaryEast[0].Y = secondaryEast[0].Y;
+
+                                    primaryEast[1].X = secondaryEast[1].X;
+                                    primaryEast[1].Y = secondaryEast[1].Y;
+
+                                    this.VegetationPolygons.Remove(secondary);
+                                    k--;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            for (int j = this.VegetationPolygons.Count - 1; j > 0; j--)
+            {
+                VegetationPolygon primary = this.VegetationPolygons[j];
+
+                for (int k = j - 1; k > 0; k--)
+                {
+                    VegetationPolygon secondary = this.VegetationPolygons[k];
+
+                    List<Vertex> primaryEast = GetEasternVertices(primary.Vertices);
+                    List<Vertex> secondaryWest = GetWesternVertices(secondary.Vertices);
+                    List<Vertex> secondaryEast = GetEasternVertices(secondary.Vertices);
+
+                    List<Vertex> primaryWest = GetWesternVertices(primary.Vertices);
+                    List<Vertex> primarySouth = GetSouthernVertices(primaryWest, primaryEast);
+                    List<Vertex> secondaryNorth = GetNorthernVertices(secondaryWest, secondaryEast);
+
+                    if (primarySouth.Count == 2 && secondaryNorth.Count == 2 && secondary.VegetationType == primary.VegetationType && secondary != primary)
+                    {
+                        if (primarySouth[0].IsClose(secondaryNorth[0], PolygonClosenessThreshold * 2) && 
+                            primarySouth[1].IsClose(secondaryNorth[1], PolygonClosenessThreshold * 2))
+                        {
+                            List<Vertex> secondarySouth = GetSouthernVertices(secondaryWest, secondaryEast);
+
+                            if (secondarySouth.Count == 2)
+                            {
+                                if (Math.Abs(primarySouth[0].X - secondarySouth[0].X) < PolygonClosenessThreshold * 5 && 
+                                    Math.Abs(primarySouth[1].X - secondarySouth[1].X) <= PolygonClosenessThreshold * 5 &&
+                                    secondarySouth[0].Y < primarySouth[0].Y &&
+                                    secondarySouth[1].Y < primarySouth[1].Y)
+                                {
+                                    primarySouth[0].X = secondarySouth[0].X;
+                                    primarySouth[0].Y = secondarySouth[0].Y;
+
+                                    primarySouth[1].X = secondarySouth[1].X;
+                                    primarySouth[1].Y = secondarySouth[1].Y;
+
+                                    this.VegetationPolygons.Remove(secondary);
+                                    k--;
+                                }
+                            }
+                        }
+                    }
+
+                }
+            }
+        }
+
+        private void JoinPolygonsAcross(List<Vertex> primaryVertices, List<Vertex> secondaryVertices)
+        {
+            primaryVertices[1] = secondaryVertices[1];
+            primaryVertices[2] = secondaryVertices[2];
+        }
+
+        private void JoinPolygonsDown(List<Vertex> primaryVertices, List<Vertex> secondaryVertices)
+        {
+            primaryVertices[2] = secondaryVertices[2];
+            primaryVertices[3] = secondaryVertices[3];
+        }
+
 
         public void SnapToUpperLeftCorner()
         {
@@ -672,7 +980,6 @@ namespace Bendyline.FlightSimulator.Data
             this.V = vVal;
 
             String altToken = GetFileNameToken();
-
         }
     }
 }

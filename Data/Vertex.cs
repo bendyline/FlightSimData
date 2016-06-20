@@ -47,11 +47,11 @@ namespace Bendyline.FlightSimulator.Data
             }
         }
 
-        public override bool Equals(object obj)
+        public bool IsClose(object obj, double tolerance)
         {
             if (obj is Vertex)
             {
-                return (  Math.Abs(this.X - ((Vertex)obj).X) < 0.000001 &&Math.Abs( this.Y - ((Vertex)obj).Y) < 0.000001);
+                return (  Math.Abs(this.X - ((Vertex)obj).X) < tolerance &&  Math.Abs( this.Y - ((Vertex)obj).Y) < tolerance);
             }
 
             return base.Equals(obj);
