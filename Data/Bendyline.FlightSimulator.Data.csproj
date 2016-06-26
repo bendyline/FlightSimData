@@ -83,7 +83,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AutogenTypes.cs" />
+    <Compile Include="SimulatorType.cs" />
     <Compile Include="ContainerRecord.cs" />
     <Compile Include="RowHouse.cs" />
     <Compile Include="GenericBuilding.cs" />

@@ -12,6 +12,92 @@ namespace Bendyline.FlightSimulator.Data
         private List<Vertex> vertices;
         private Guid vegetationType;
 
+        private List<Vertex> allNorthernVertices;
+        private List<Vertex> allWesternVertices;
+        private List<Vertex> westernVertices;
+        private List<Vertex> easternVertices;
+        private List<Vertex> northernVertices;
+        private List<Vertex> southernVertices;
+
+        public List<Vertex> WesternVertices
+        {
+            get
+            {
+                if (this.westernVertices == null)
+                {
+                    this.westernVertices = Vertex.GetWesternVertices(this.Vertices);
+                }
+
+                return this.westernVertices;
+            }
+        }
+
+        public List<Vertex> AllWesternVertices
+        {
+            get
+            {
+                if (this.allWesternVertices == null)
+                {
+                    this.allWesternVertices = Vertex.GetAllWesternVertices(this.Vertices);
+                }
+
+                return this.allWesternVertices;
+            }
+        }
+
+        public List<Vertex> EasternVertices
+        {
+            get
+            {
+                if (this.easternVertices == null)
+                {
+                    this.easternVertices = Vertex.GetEasternVertices(this.Vertices);
+                }
+
+                return this.easternVertices;
+            }
+        }
+
+        public List<Vertex> AllNorthernVertices
+        {
+            get
+            {
+                if (this.allNorthernVertices == null)
+                {
+                    this.allNorthernVertices = Vertex.GetNorthernVertices(this.AllWesternVertices, this.EasternVertices);
+                }
+
+                return this.allNorthernVertices;
+            }
+        }
+
+
+        public List<Vertex> NorthernVertices
+        {
+            get
+            {
+                if (this.northernVertices == null)
+                {
+                    this.northernVertices = Vertex.GetNorthernVertices(this.WesternVertices, this.EasternVertices);
+                }
+
+                return this.northernVertices;
+            }
+        }
+
+        public List<Vertex> SouthernVertices
+        {
+            get
+            {
+                if (this.southernVertices == null)
+                {
+                    this.southernVertices = Vertex.GetSouthernVertices(this.WesternVertices, this.EasternVertices);
+                }
+
+                return this.southernVertices;
+            }
+        }
+
         public override RecordType RecordType
         {
             get
@@ -75,6 +161,18 @@ namespace Bendyline.FlightSimulator.Data
 
                 this.vertices.Add(vt);
             }
+
+            this.ClearVertexCaches();
+        }
+
+        public void ClearVertexCaches()
+        {
+            this.westernVertices = null;
+            this.northernVertices = null;
+            this.easternVertices = null;
+            this.southernVertices = null;
+            this.allNorthernVertices = null;
+            this.allWesternVertices = null;
         }
 
 

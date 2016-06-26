@@ -10,10 +10,10 @@ namespace Bendyline.FlightSimulator.Data
     public class PolygonBuilding : Record
     {
         private List<Vertex> vertices;
-        private float extrusionWidth = -0.00945066f;
+        private double extrusionWidth = -0.00945066f;
         private Guid buildingType;
 
-        public float ExtrusionWidth
+        public double ExtrusionWidth
         {
             get
             {

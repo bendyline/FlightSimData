@@ -149,8 +149,9 @@ namespace Bendyline.FlightSimulator.Data
             fs.Write(int32bytes, 0, 4);
         }
 
-        protected void WriteFloat(Stream fs, float floatToWrite)
+        protected void WriteFloat(Stream fs, double doubleToWrite)
         {
+            Single floatToWrite = Convert.ToSingle(doubleToWrite);
             byte[] floatbytes = BitConverter.GetBytes(floatToWrite);
 
             fs.Write(floatbytes, 0, 4);
