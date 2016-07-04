@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Threading;
 
 namespace Bendyline.FlightSimulator.Data
 {
@@ -276,7 +277,10 @@ namespace Bendyline.FlightSimulator.Data
                 }
 
 
-                for (int k =j+1; k < this.VegetationPolygons.Count; k++)
+                double closestX = Double.MaxValue, closestY = double.MaxValue;
+                VegetationPolygon closestPolygon = null;
+
+                for (int k =0; k < this.VegetationPolygons.Count; k++)
                 {
                     VegetationPolygon secondary = null;
 
@@ -285,21 +289,22 @@ namespace Bendyline.FlightSimulator.Data
                         secondary = this.VegetationPolygons[k];
                     }
 
+
                     if (secondary != primary && secondary != null && primary != null)
                     { 
                         List<Vertex> primaryEast = primary.EasternVertices;
                         List<Vertex> secondaryWest = secondary.WesternVertices;
 
-                        if (primaryEast.Count == 2 && secondaryWest.Count == 2 && secondary.VegetationType == primary.VegetationType && secondary != primary)
+                        if (primaryEast.Count == 2 && secondaryWest.Count == 2 && secondary != primary)
                         {
                             if (
                                 (joinNorthward == true &&
-                                (primaryEast[0].IsCloseAndToNorth(secondaryWest[1], PolygonClosenessThreshold , PolygonClosenessThreshold ) &&
-                                  primaryEast[1].IsCloseAndToNorth(secondaryWest[0], PolygonClosenessThreshold, PolygonClosenessThreshold ))) ||
+                                (primaryEast[0].IsCloseAndToNorth(secondaryWest[1], PolygonClosenessThreshold * 3, PolygonClosenessThreshold * 3) &&
+                                  primaryEast[1].IsCloseAndToNorth(secondaryWest[0], PolygonClosenessThreshold * 3, PolygonClosenessThreshold * 3))) ||
 
                                   (joinNorthward == false &&
-                                (primaryEast[0].IsCloseAndToSouth(secondaryWest[1], PolygonClosenessThreshold, PolygonClosenessThreshold) &&
-                                  primaryEast[1].IsCloseAndToSouth(secondaryWest[0], PolygonClosenessThreshold, PolygonClosenessThreshold))) ||
+                                (primaryEast[0].IsCloseAndToSouth(secondaryWest[1], PolygonClosenessThreshold * 3, PolygonClosenessThreshold * 3) &&
+                                  primaryEast[1].IsCloseAndToSouth(secondaryWest[0], PolygonClosenessThreshold * 3, PolygonClosenessThreshold * 3))) ||
 
                                 (joinNorthward == null &&
                                 (primaryEast[0].IsClose(secondaryWest[1], PolygonClosenessThreshold , PolygonClosenessThreshold) && 
@@ -307,27 +312,39 @@ namespace Bendyline.FlightSimulator.Data
                                   
                                )
                             {
-                                List<Vertex> secondaryEast = secondary.EasternVertices;
-                                if (secondaryEast.Count == 2)
+                                double closeX = Math.Abs(primaryEast[0].X - secondaryWest[1].X);
+                                double closeY = Math.Abs(primaryEast[0].Y - secondaryWest[1].Y);
+
+                                if (closeX < closestX && closeY < closestY)
                                 {
-                                    if (Math.Abs(primaryEast[0].Y - secondaryEast[0].Y) < PolygonClosenessThreshold && 
-                                        Math.Abs(primaryEast[1].Y - secondaryEast[1].Y) <= PolygonClosenessThreshold)
-                                    {
-                                        primaryEast[0].X = secondaryEast[0].X;
-                                        primaryEast[0].Y = secondaryEast[0].Y;
-
-                                        primaryEast[1].X = secondaryEast[1].X;
-                                        primaryEast[1].Y = secondaryEast[1].Y;
-
-                                        this.VegetationPolygons.Remove(secondary);
-
-                                        if (k > j)
-                                        {
-                                            k--;
-                                        }
-                                    }
+                                    closestPolygon = secondary;
+                                    closestX = closeX;
+                                    closestY = closeY;
                                 }
                             }
+                        }
+                    }
+                }
+
+
+                if (closestPolygon != null && closestPolygon.VegetationType == primary.VegetationType)
+                {
+                    List<Vertex> primaryEast = primary.EasternVertices;
+                    List<Vertex> closestEast = closestPolygon.EasternVertices;
+
+                    if (closestEast.Count == 2)
+                    {
+                        if (Math.Abs(primaryEast[0].Y - closestEast[0].Y) < PolygonClosenessThreshold &&
+                            Math.Abs(primaryEast[1].Y - closestEast[1].Y) <= PolygonClosenessThreshold)
+                        {
+                            primaryEast[0].X = closestEast[0].X;
+                            primaryEast[0].Y = closestEast[0].Y;
+
+                            primaryEast[1].X = closestEast[1].X;
+                            primaryEast[1].Y = closestEast[1].Y;
+
+                            this.VegetationPolygons.Remove(closestPolygon);
+                            j--;
                         }
                     }
                 }
@@ -494,10 +511,29 @@ namespace Bendyline.FlightSimulator.Data
 
 
             FileInfo fi = new FileInfo(path);
+            bool tryAgain = true;
+            int tryCount = 5;
 
-            using (FileStream fs = fi.Open(FileMode.Create, FileAccess.Write))
+            while (tryAgain == true)
             {
-                this.rootRecord.Save(fs);
+                try
+                {
+                    using (FileStream fs = fi.Open(FileMode.Create, FileAccess.Write))
+                    {
+                        this.rootRecord.Save(fs);
+                    }
+
+                    tryAgain = false;
+                }
+                catch (IOException)
+                {
+                    tryCount--;
+                    tryAgain = (tryCount > 0);
+
+                    Log.Error("File '" + path + "' could not be written; retrying.");
+
+                    Thread.Sleep(500);
+                }
             }
         }
 

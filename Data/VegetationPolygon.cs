@@ -176,6 +176,18 @@ namespace Bendyline.FlightSimulator.Data
         }
 
 
+        public override string ToString()
+        {
+            String result = this.vegetationType.ToString();
+
+            foreach (Vertex v in this.vertices)
+            {
+                result += "|" + Convert.ToSingle(v.X).ToString() + "|" + Convert.ToString(v.Y).ToString();
+            }
+
+            return result;
+        }
+
         public override void Save(Stream s)
         {
             base.Save(s);
